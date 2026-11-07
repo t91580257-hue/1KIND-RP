@@ -75,22 +75,37 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Install Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Install Android components
+      
+      - name: Install Android SDK components
         shell: bash
         run: |
           set -euo pipefail
 
-          yes | sdkmanager --licenses >/dev/null || true
+          echo "ANDROID_HOME=${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          export ANDROID_HOME="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          export ANDROID_SDK_ROOT="$ANDROID_HOME"
 
-          sdkmanager \
+          SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -name sdkmanager -type f | head -n 1)"
+
+          if [ -z "$SDKMANAGER" ]; then
+            echo "ERROR: sdkmanager not found"
+            exit 1
+          fi
+
+          yes | "$SDKMANAGER" --licenses || true
+
+          "$SDKMANAGER" \
             "platform-tools" \
-            "platforms;${ANDROID_PLATFORM}" \
-            "build-tools;${ANDROID_BUILD_TOOLS}" \
-            "ndk;${NDK_VERSION}" \
-            "cmake;${CMAKE_VERSION}"
+            "platforms;android-34" \
+            "build-tools;34.0.0" \
+            "ndk;23.2.8568313" \
+            "cmake;3.10.2.4988404"
+
+          echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> "$GITHUB_ENV"
+
+
+      
 
       - name: Download Godot 4.3
         shell: bash
